@@ -41,105 +41,113 @@ module.exports = async (
     throw new Error(msg)
   }
 
-  if (!owner) {
-    const accounts = await getAccounts(web3)
-    owner = accounts[0]
-    log('OWNER env variable not found, setting APM owner to the provider\'s first account')
-  }
-
-  log(`${kitName} with ENS ${ensAddress}, owner ${owner}`)
-
-  const DAOFactory = artifacts.require('DAOFactory')
-  const ENS = artifacts.require('ENS')
-  const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory')
-
-  if (!ensAddress) {
-    errorOut('ENS environment variable not passed, aborting.')
-  }
-  log('Using ENS', ensAddress)
-  const ens = ENS.at(ensAddress)
-
-  if (!daoFactoryAddress) {
-    const daoFactory = (await deployDAOFactory(null, { artifacts, verbose: false })).daoFactory
-    daoFactoryAddress = daoFactory.address
-  }
-  log(`Using DAOFactory: ${daoFactoryAddress}`)
-
-  const apmAddress = await artifacts.require('PublicResolver').at(await ens.resolver(namehash('aragonpm.eth'))).addr(namehash('aragonpm.eth'))
-  if (!apmAddress) {
-    errorOut('No APM found for ENS, aborting.')
-  }
-  log('APM', apmAddress);
-  const apm = artifacts.require('APMRegistry').at(apmAddress)
-
-  for (let i = 0; i < apps.length; i++) {
-    if (await ens.owner(appIds[i]) == '0x0000000000000000000000000000000000000000') {
-      errorOut(`Missing app ${apps[i]}, aborting.`)
+  try {
+    if (!owner) {
+      const accounts = await getAccounts(web3)
+      owner = accounts[0]
+      log('OWNER env variable not found, setting APM owner to the provider\'s first account')
     }
-  }
 
-  let minimeFac
-  if (minimeTokenFactoryAddress) {
-    log(`Using provided MiniMeTokenFactory: ${minimeTokenFactoryAddress}`)
-    minimeFac = MiniMeTokenFactory.at(minimeTokenFactoryAddress)
-  } else {
-    minimeFac = await MiniMeTokenFactory.new()
-    log('Deployed MiniMeTokenFactory:', minimeFac.address)
-  }
+    log(`${kitName} with ENS ${ensAddress}, owner ${owner}`)
 
-  //const aragonid = await ens.owner(namehash('aragonid.eth'))
+    const DAOFactory = artifacts.require('DAOFactory')
+    const ENS = artifacts.require('ENS')
+    const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory')
 
-  const melonKit = await artifacts.require(kitName).new(daoFactoryAddress, ensAddress, minimeFac.address)
-  log('Kit address:', melonKit.address)
-  await logDeploy(melonKit)
-
-  const melonReceipt1 = await melonKit.newInstance1([], [owner])
-  const gasUsed1 = melonReceipt1.receipt.cumulativeGasUsed
-  const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
-  log('Melon DAO address: ', melonAddress)
-  const melonReceipt2 = await melonKit.newInstance2(melonAddress, [owner])
-  const gasUsed2 = melonReceipt2.receipt.cumulativeGasUsed
-  log('Gas used:', gasUsed1, '+', gasUsed2, '=', parseInt(gasUsed1, 10) + parseInt(gasUsed2, 10))
-
-  // generated tokens
-  const mainTokenAddress = getToken(melonReceipt1, 0)
-  log('General Membership Token: ', mainTokenAddress)
-
-  const mtcTokenAddress = getToken(melonReceipt2, 0)
-  log('MTC Token: ', mtcTokenAddress)
-
-  // generated apps
-  const vaultAddress = getAppProxy(melonReceipt1, appIds[2])
-  log('Vault: ', vaultAddress)
-  const financeAddress = getAppProxy(melonReceipt1, appIds[0])
-  log('Finance: ', financeAddress)
-  const mainTokenManagerAddress = getAppProxy(melonReceipt1, appIds[1], 0)
-  log('General Membership Token Manager: ', mainTokenManagerAddress)
-  const mainVotingAddress = getAppProxy(melonReceipt1, appIds[3], 0)
-  log('General Memebership Voting: ', mainVotingAddress)
-  const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[3], 1)
-  log('Supermajority Voting: ', supermajorityVotingAddress)
-
-  const mtcTokenManagerAddress = getAppProxy(melonReceipt2, appIds[1], 0)
-  log('MTC Token Manager: ', mtcTokenManagerAddress)
-  const mtcVotingAddress = getAppProxy(melonReceipt2, appIds[3], 0)
-  log('MTC Voting: ', mtcVotingAddress)
-
-  if (typeof truffleExecCallback === 'function') {
-    // Called directly via `truffle exec`
-    truffleExecCallback()
-  } else {
-    return {
-      melonAddress,
-      mainTokenAddress,
-      mtcTokenAddress,
-      financeAddress,
-      mainTokenManagerAddress,
-      mtcTokenManagerAddress,
-      vaultAddress,
-      mainVotingAddress,
-      supermajorityVotingAddress,
-      mtcVotingAddress
+    if (!ensAddress) {
+      errorOut('ENS environment variable not passed, aborting.')
     }
+    log('Using ENS', ensAddress)
+    const ens = ENS.at(ensAddress)
+
+    if (!daoFactoryAddress) {
+      const daoFactory = (await deployDAOFactory(null, { artifacts, verbose: false })).daoFactory
+      daoFactoryAddress = daoFactory.address
+    }
+    log(`Using DAOFactory: ${daoFactoryAddress}`)
+
+    const apmAddress = await artifacts.require('PublicResolver').at(await ens.resolver(namehash('aragonpm.eth'))).addr(namehash('aragonpm.eth'))
+    if (!apmAddress) {
+      errorOut('No APM found for ENS, aborting.')
+    }
+    log('APM', apmAddress);
+    const apm = artifacts.require('APMRegistry').at(apmAddress)
+
+    for (let i = 0; i < apps.length; i++) {
+      if (await ens.owner(appIds[i]) == '0x0000000000000000000000000000000000000000') {
+        errorOut(`Missing app ${apps[i]}, aborting.`)
+      }
+    }
+
+    let minimeFac
+    if (minimeTokenFactoryAddress) {
+      log(`Using provided MiniMeTokenFactory: ${minimeTokenFactoryAddress}`)
+      minimeFac = MiniMeTokenFactory.at(minimeTokenFactoryAddress)
+    } else {
+      minimeFac = await MiniMeTokenFactory.new()
+      log('Deployed MiniMeTokenFactory:', minimeFac.address)
+    }
+
+    //const aragonid = await ens.owner(namehash('aragonid.eth'))
+
+    const melonKit = await artifacts.require(kitName).new(daoFactoryAddress, ensAddress, minimeFac.address)
+    log('Kit address:', melonKit.address)
+    await logDeploy(melonKit)
+
+    // First transaction
+    const melonReceipt1 = await melonKit.newInstance1([], [owner])
+    const gasUsed1 = melonReceipt1.receipt.cumulativeGasUsed
+    const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
+    log('Melon DAO address: ', melonAddress)
+
+    // generated tokens
+    const mainTokenAddress = getToken(melonReceipt1, 0)
+    log('General Membership Token: ', mainTokenAddress)
+    // generated apps
+    const vaultAddress = getAppProxy(melonReceipt1, appIds[2])
+    log('Vault: ', vaultAddress)
+    const financeAddress = getAppProxy(melonReceipt1, appIds[0])
+    log('Finance: ', financeAddress)
+    const mainTokenManagerAddress = getAppProxy(melonReceipt1, appIds[1], 0)
+    log('General Membership Token Manager: ', mainTokenManagerAddress)
+    const mainVotingAddress = getAppProxy(melonReceipt1, appIds[3], 0)
+    log('General Memebership Voting: ', mainVotingAddress)
+    const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[3], 1)
+    log('Supermajority Voting: ', supermajorityVotingAddress)
+
+    // Second transaction
+    const melonReceipt2 = await melonKit.newInstance2(melonAddress, mainVotingAddress, [owner])
+    const gasUsed2 = melonReceipt2.receipt.cumulativeGasUsed
+
+    // generated tokens
+    const mtcTokenAddress = getToken(melonReceipt2, 0)
+    log('MTC Token: ', mtcTokenAddress)
+    // generated apps
+    const mtcTokenManagerAddress = getAppProxy(melonReceipt2, appIds[1], 0)
+    log('MTC Token Manager: ', mtcTokenManagerAddress)
+    const mtcVotingAddress = getAppProxy(melonReceipt2, appIds[3], 0)
+    log('MTC Voting: ', mtcVotingAddress)
+
+    log('Gas used:', gasUsed1, '+', gasUsed2, '=', parseInt(gasUsed1, 10) + parseInt(gasUsed2, 10))
+
+    if (typeof truffleExecCallback === 'function') {
+      // Called directly via `truffle exec`
+      truffleExecCallback()
+    } else {
+      return {
+        melonAddress,
+        mainTokenAddress,
+        mtcTokenAddress,
+        financeAddress,
+        mainTokenManagerAddress,
+        mtcTokenManagerAddress,
+        vaultAddress,
+        mainVotingAddress,
+        supermajorityVotingAddress,
+        mtcVotingAddress
+      }
+    }
+  } catch(e) {
+    errorOut(e)
   }
 }

@@ -17,8 +17,13 @@ const Voting = artifacts.require('Voting')
 const getContract = name => artifacts.require(name)
 
 const pct16 = x => new web3.BigNumber(x).times(new web3.BigNumber(10).toPower(16))
-const getEventResult = (receipt, event, param) => receipt.logs.filter(l => l.event == event)[0].args[param]
-const createdVoteId = receipt => getEventResult(receipt, 'StartVote', 'voteId')
+const getVoteId = (receipt) => {
+  const logs = receipt.receipt.logs.filter(
+    l =>
+      l.topics[0] == web3.sha3('StartVote(uint256,address,string)')
+  )
+  return web3.toDecimal(logs[0].topics[1])
+}
 
 contract('Melon Kit', accounts => {
   const ETH = '0x0'
@@ -27,16 +32,25 @@ contract('Melon Kit', accounts => {
   const NEEDED_SUPPORT_SUPERMAJORITY = '666666666666666666'
   const MINIMUM_ACCEPTANCE_QUORUM = 0
   const VOTING_TIME = 48 * 3600 // 48h
+  const MEB_NUM = 2
+  const MTC_NUM = 5
   let daoAddress,
       mainTokenManager, mtcTokenManager,
       finance, vault,
       mainVoting, supermajorityVoting, mtcVoting
 
   const owner = accounts[0]
-  const holder16 = accounts[1]
-  const holder33 = accounts[2]
-  const holder51 = accounts[3]
-  const nonHolder = accounts[4]
+  const nonHolder = accounts[MEB_NUM + MTC_NUM]
+
+  const wrapVoteinTokenManager = async(action1, tokenManagerApp, votingApp, metadata='metadata') => {
+    const script1 = encodeCallScript([action1])
+    const action2 = { to: votingApp.address, calldata: votingApp.contract.newVote.getData(script1, metadata) }
+    const script2 = encodeCallScript([action2])
+    const r = await tokenManagerApp.forward(script2, { from: owner })
+    const voteId = getVoteId(r)
+
+    return voteId
+  }
 
   before(async () => {
     // create Melon Kit
@@ -56,21 +70,30 @@ contract('Melon Kit', accounts => {
     daoAddress = melonAddress
 
     finance = Finance.at(financeAddress)
-    mainTokenManager = Finance.at(mainTokenManagerAddress)
-    mtcTokenManager = Finance.at(mtcTokenManagerAddress)
+    mainTokenManager = TokenManager.at(mainTokenManagerAddress)
+    mtcTokenManager = TokenManager.at(mtcTokenManagerAddress)
     vault = Vault.at(vaultAddress)
     mainVoting = Voting.at(mainVotingAddress)
     supermajorityVoting = Voting.at(supermajorityVotingAddress)
     mtcVoting = Voting.at(mtcVotingAddress)
 
-    // TODO: it will fail as it needs a vote!
-    // mint tokens: 2 MEB (general) + 5 MTC
-    const mainToken = artifacts.require('MiniMeToken').at(mainTokenAddress)
-    for (let i = 0; i < 2; i++)
-      await mainToken.generateTokens(accounts[i], 1)
-    const mtcToken = artifacts.require('MiniMeToken').at(mtcTokenAddress)
-    for (let i = 2; i < 7; i++)
-      await mtcToken.generateTokens(accounts[i], 1)
+    // we assign tokens to accounts in index increasing order
+    // all previous accounts, already token holders, vote yes to new assignment
+    const mintToken = async (tokenManagerApp, votingApp, accountIndex) => {
+      const action1 = { to: tokenManagerApp.address, calldata: tokenManagerApp.contract.mint.getData(accounts[accountIndex], 1) }
+      const voteId = await wrapVoteinTokenManager(action1, tokenManagerApp, votingApp, 'mint token')
+      for (let i = 0; i < accountIndex; i++) {
+        await votingApp.vote(voteId, true, false, { from: accounts[i] })
+      }
+      await timeTravel(VOTING_TIME + 1)
+      await votingApp.executeVote(voteId, {from: owner})
+    }
+
+    // mint tokens: 2 MEB + 4 MTC, owner is already in MTC, that gives 2 + 5
+    for (let i = 1; i < MTC_NUM; i++)
+      await mintToken(mtcTokenManager, mtcVoting, i)
+    for (let i = 1; i < MTC_NUM + MEB_NUM ; i++)
+      await mintToken(mainTokenManager, mainVoting, i)
   })
 
   context('Creating a DAO and votes', () => {
@@ -136,21 +159,33 @@ contract('Melon Kit', accounts => {
     })
 
     for (const votingType of ['Main', 'Supermajority', 'MTC']) {
-      let apps = {}
-      apps['Main'] = mainVoting
-      apps['Supermajority'] = supermajorityVoting
-      apps['MTC'] = mtcVoting
+      let votingApps = {}, tokenManagerApps = {}, totalHolders = {}
 
       context(`creating ${votingType} vote`, () => {
-        let votingApp, voteId = {}
+        let votingApp, tokenManagerApp, voteId = {}
         let executionTarget = {}, script
 
+        before(async() => {
+          votingApps['Main'] = mainVoting
+          votingApps['Supermajority'] = supermajorityVoting
+          votingApps['MTC'] = mtcVoting
+
+          tokenManagerApps['Main'] = mainTokenManager
+          tokenManagerApps['Supermajority'] = mainTokenManager
+          tokenManagerApps['MTC'] = mtcTokenManager
+
+          totalHolders['Main'] = MTC_NUM + MEB_NUM
+          totalHolders['Supermajority'] = MTC_NUM + MEB_NUM
+          totalHolders['MTC'] = MTC_NUM
+        })
+
         beforeEach(async () => {
-          votingApp = apps[votingType]
+          votingApp = votingApps[votingType]
+          tokenManagerApp = tokenManagerApps[votingType]
           executionTarget = await getContract('ExecutionTarget').new()
           const action = { to: executionTarget.address, calldata: executionTarget.contract.execute.getData() }
-          script = encodeCallScript([action, action])
-          voteId = createdVoteId(await votingApp.newVote(script, 'metadata', { from: owner }))
+          script = encodeCallScript([action])
+          voteId = await wrapVoteinTokenManager(action, tokenManagerApp, votingApp)
         })
 
         it('has correct state', async() => {
@@ -163,24 +198,24 @@ contract('Melon Kit', accounts => {
           assert.equal(minQuorum.toString(), MINIMUM_ACCEPTANCE_QUORUM.toString(), 'min quorum should be app min quorum')
           assert.equal(y, 0, 'initial yea should be 0')
           assert.equal(n, 0, 'initial nay should be 0')
-          assert.equal(totalVoters.toString(), new web3.BigNumber(100e18).toString(), 'total voters should be 100')
+          assert.equal(totalVoters.toString(), totalHolders[votingType], 'total voters should be correct')
           assert.equal(execScript, script, 'script should be correct')
         })
 
         it('holder can vote', async () => {
-          await votingApp.vote(voteId, false, true, { from: holder33 })
+          await votingApp.vote(voteId, false, true, { from: accounts[1] })
           const state = await votingApp.getVote(voteId)
 
-          assert.equal(state[7].toString(), new web3.BigNumber(33e18).toString(), 'nay vote should have been counted')
+          assert.equal(state[7].toString(), 1, 'nay vote should have been counted')
         })
 
         it('holder can modify vote', async () => {
-          await votingApp.vote(voteId, true, true, { from: holder33 })
-          await votingApp.vote(voteId, false, true, { from: holder33 })
-          await votingApp.vote(voteId, true, true, { from: holder33 })
+          await votingApp.vote(voteId, true, true, { from: accounts[1] })
+          await votingApp.vote(voteId, false, true, { from: accounts[1] })
+          await votingApp.vote(voteId, true, true, { from: accounts[1] })
           const state = await votingApp.getVote(voteId)
 
-          assert.equal(state[6].toString(), new web3.BigNumber(33e18).toString(), 'yea vote should have been counted')
+          assert.equal(state[6].toString(), 1, 'yea vote should have been counted')
           assert.equal(state[7], 0, 'nay vote should have been removed')
         })
 
@@ -193,16 +228,16 @@ contract('Melon Kit', accounts => {
         it('throws when voting after voting closes', async () => {
           await timeTravel(VOTING_TIME + 1)
           return assertRevert(async () => {
-            await votingApp.vote(voteId, true, true, { from: holder33 })
+            await votingApp.vote(voteId, true, true, { from: accounts[2] })
           })
         })
 
         it('can execute if vote is approved with support and quorum', async () => {
-          await votingApp.vote(voteId, true, true, { from: holder33 })
-          await votingApp.vote(voteId, false, true, { from: holder16 })
+          for (let i = 0; i < totalHolders[votingType]; i++)
+            await votingApp.vote(voteId, true, false, { from: accounts[i] })
           await timeTravel(VOTING_TIME + 1)
           await votingApp.executeVote(voteId, {from: owner})
-          assert.equal((await executionTarget.counter()).toString(), 2, 'should have executed result')
+          assert.equal((await executionTarget.counter()).toString(), 1, 'should have executed result')
         })
 
         it('cannot execute vote if not enough quorum met', async () => {
@@ -213,8 +248,8 @@ contract('Melon Kit', accounts => {
         })
 
         it('cannot execute vote if not support met', async () => {
-          await votingApp.vote(voteId, false, true, { from: holder33 })
-          await votingApp.vote(voteId, false, true, { from: holder16 })
+          await votingApp.vote(voteId, false, true, { from: accounts[0] })
+          await votingApp.vote(voteId, false, true, { from: accounts[1] })
           await timeTravel(VOTING_TIME + 1)
           return assertRevert(async () => {
             await votingApp.executeVote(voteId, {from: owner})
@@ -223,7 +258,7 @@ contract('Melon Kit', accounts => {
 
         it('nobody else can create votes', async () => {
           return assertRevert(async () => {
-            await votingApp.newVote(script, 'metadata', { from: holder51 })
+            await votingApp.newVote(script, 'metadata', { from: nonHolder })
           })
         })
       })
@@ -237,8 +272,7 @@ contract('Melon Kit', accounts => {
       // Fund Finance
       await finance.sendTransaction({ value: payment, from: owner })
       const action = { to: finance.address, calldata: finance.contract.newPayment.getData(ETH, nonHolder, payment, 0, 0, 1, "voting payment") }
-      script = encodeCallScript([action])
-      voteId = createdVoteId(await mainVoting.newVote(script, 'metadata', { from: owner }))
+      voteId = await wrapVoteinTokenManager(action, mainTokenManager, mainVoting)
     })
 
     it('finance can not be accessed directly (without a vote)', async () => {
@@ -250,8 +284,9 @@ contract('Melon Kit', accounts => {
     it('transfers funds if vote is approved', async () => {
       const receiverInitialBalance = await getBalance(nonHolder)
       //await logBalances(finance.address, vault.address)
-      await mainVoting.vote(voteId, true, true, { from: holder33 })
-      await mainVoting.vote(voteId, false, true, { from: holder16 })
+      await mainVoting.vote(voteId, true, false, { from: accounts[0] })
+      await mainVoting.vote(voteId, true, false, { from: accounts[2] })
+      await mainVoting.vote(voteId, false, false, { from: accounts[1] })
       await timeTravel(VOTING_TIME + 1)
       await mainVoting.executeVote(voteId, {from: owner})
       //await logBalances(finance.address, vault.address)

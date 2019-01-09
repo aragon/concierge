@@ -118,8 +118,8 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
 
         // General Voting
         acl.createPermission(mainTokenManager, mainVoting, mainVoting.CREATE_VOTES_ROLE(), mainVoting);
-        acl.createPermission(supermajorityVoting, mainVoting, mainVoting.MODIFY_QUORUM_ROLE(), supermajorityVoting);
-        acl.createPermission(supermajorityVoting, mainVoting, mainVoting.MODIFY_SUPPORT_ROLE(), supermajorityVoting);
+        acl.createPermission(mainVoting, mainVoting, mainVoting.MODIFY_QUORUM_ROLE(), mainVoting);
+        acl.createPermission(mainVoting, mainVoting, mainVoting.MODIFY_SUPPORT_ROLE(), mainVoting);
 
         // Supermajority Voting
         acl.createPermission(mainTokenManager, supermajorityVoting, supermajorityVoting.CREATE_VOTES_ROLE(), supermajorityVoting);
@@ -148,21 +148,13 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         }
         cleanupPermission(acl, mainVoting, mainTokenManager, mainTokenManager.MINT_ROLE());
 
-        /*
-        // Set up MTC
-        setUpMTC(dao, acl, mtcMembers);
-
-        // cleanup
-        cleanupDAOPermissions(dao, acl, mainVoting);
-        */
-
         // register Aragon ID
         //aragonID.register(keccak256(abi.encodePacked(name)), dao);
 
         emit DeployInstance(dao);
     }
 
-    function newInstance2(Kernel dao, address[] mtcMembers) external {
+    function newInstance2(Kernel dao, Voting mainVoting, address[] mtcMembers) external {
         ACL acl = ACL(dao.acl());
 
         Voting mtcVoting = Voting(dao.newAppInstance(votingAppId, latestVersionAppBase(votingAppId)));
@@ -209,5 +201,8 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
             mtcTokenManager.mint(mtcMembers[i], 1);
         }
         cleanupPermission(acl, mtcVoting, mtcTokenManager, mtcTokenManager.MINT_ROLE());
+
+        // cleanup
+        cleanupDAOPermissions(dao, acl, mainVoting);
     }
 }
