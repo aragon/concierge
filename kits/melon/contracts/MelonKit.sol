@@ -6,7 +6,7 @@ import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-voting/contracts/Voting.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 
-//import "@aragon/id/contracts/IFIFSResolvingRegistrar.sol";
+import "@aragon/id/contracts/IFIFSResolvingRegistrar.sol";
 
 import "@aragon/os/contracts/apm/APMNamehash.sol";
 import "@aragon/os/contracts/common/IsContract.sol";
@@ -42,15 +42,15 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
     bytes32 constant public votingAppId = apmNamehash("voting");
 
     MiniMeTokenFactory public minimeFac;
-    //IFIFSResolvingRegistrar public aragonID;
+    IFIFSResolvingRegistrar public aragonID;
 
     event DeployToken(address token);
 
     constructor(
         DAOFactory _fac,
         ENS _ens,
-        MiniMeTokenFactory _minimeFac
-        //IFIFSResolvingRegistrar _aragonID
+        MiniMeTokenFactory _minimeFac,
+        IFIFSResolvingRegistrar _aragonID
     )
         KitBase(_fac, _ens)
         public
@@ -58,10 +58,10 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         require(isContract(address(_fac.regFactory())));
 
         minimeFac = _minimeFac;
-        //aragonID = _aragonID;
+        aragonID = _aragonID;
     }
 
-    function newInstance1(/* string name,  */address[] mebMembers, address[] mtcMembers) external {
+    function newInstance1(address[] mebMembers, address[] mtcMembers) external {
         Kernel dao = fac.newDAO(this);
         ACL acl = ACL(dao.acl());
 
@@ -148,13 +148,10 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         }
         cleanupPermission(acl, mainVoting, mainTokenManager, mainTokenManager.MINT_ROLE());
 
-        // register Aragon ID
-        //aragonID.register(keccak256(abi.encodePacked(name)), dao);
-
         emit DeployInstance(dao);
     }
 
-    function newInstance2(Kernel dao, Voting mainVoting, address[] mtcMembers) external {
+    function newInstance2(string name, Kernel dao, Voting mainVoting, address[] mtcMembers) external {
         ACL acl = ACL(dao.acl());
 
         Voting mtcVoting = Voting(dao.newAppInstance(votingAppId, latestVersionAppBase(votingAppId)));
@@ -204,5 +201,8 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
 
         // cleanup
         cleanupDAOPermissions(dao, acl, mainVoting);
+
+        // register Aragon ID
+        aragonID.register(keccak256(abi.encodePacked(name)), dao);
     }
 }

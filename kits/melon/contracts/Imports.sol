@@ -5,6 +5,7 @@ pragma solidity 0.4.24;
 
 import "@aragon/os/contracts/factory/APMRegistryFactory.sol";
 import "@aragon/apps-shared-migrations/contracts/Migrations.sol";
+import "@aragon/id/contracts/FIFSResolvingRegistrar.sol";
 
 
 contract Imports {}

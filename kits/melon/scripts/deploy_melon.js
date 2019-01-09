@@ -17,6 +17,7 @@ const defaultOwner = process.env.OWNER
 const defaultENSAddress = process.env.ENS
 const defaultDAOFactoryAddress = process.env.DAO_FACTORY
 const defaultMinimeTokenFactoryAddress = process.env.MINIME_TOKEN_FACTORY
+const defaultInstanceName = 'melon'
 
 module.exports = async (
   truffleExecCallback,
@@ -27,6 +28,7 @@ module.exports = async (
     ensAddress = defaultENSAddress,
     daoFactoryAddress = defaultDAOFactoryAddress,
     minimeTokenFactoryAddress = defaultMinimeTokenFactoryAddress,
+    instanceName = defaultInstanceName,
     verbose = true
   } = {}
 ) => {
@@ -88,9 +90,9 @@ module.exports = async (
       log('Deployed MiniMeTokenFactory:', minimeFac.address)
     }
 
-    //const aragonid = await ens.owner(namehash('aragonid.eth'))
+    const aragonid = await ens.owner(namehash('aragonid.eth'))
 
-    const melonKit = await artifacts.require(kitName).new(daoFactoryAddress, ensAddress, minimeFac.address)
+    const melonKit = await artifacts.require(kitName).new(daoFactoryAddress, ensAddress, minimeFac.address, aragonid)
     log('Kit address:', melonKit.address)
     await logDeploy(melonKit)
 
@@ -116,7 +118,7 @@ module.exports = async (
     log('Supermajority Voting: ', supermajorityVotingAddress)
 
     // Second transaction
-    const melonReceipt2 = await melonKit.newInstance2(melonAddress, mainVotingAddress, [owner])
+    const melonReceipt2 = await melonKit.newInstance2(instanceName, melonAddress, mainVotingAddress, [owner])
     const gasUsed2 = melonReceipt2.receipt.cumulativeGasUsed
 
     // generated tokens

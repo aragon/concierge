@@ -54,6 +54,7 @@ contract('Melon Kit', accounts => {
 
   before(async () => {
     // create Melon Kit
+    const instanceName = 'melon' + Math.floor(Math.random() * 1000)
     const {
       melonAddress,
       mainTokenAddress,
@@ -65,7 +66,7 @@ contract('Melon Kit', accounts => {
       mainVotingAddress,
       supermajorityVotingAddress,
       mtcVotingAddress
-    } = await deployMelon(null, {artifacts, web3, owner})
+    } = await deployMelon(null, {artifacts, web3, owner, instanceName})
 
     daoAddress = melonAddress
 
