@@ -16,6 +16,7 @@ const globalWeb3 = this.web3 // Not injected unless called directly via truffle
 const defaultOwner = process.env.OWNER
 const defaultENSAddress = process.env.ENS
 const defaultDAOFactoryAddress = process.env.DAO_FACTORY
+const defaultMinimeTokenFactoryAddress = process.env.MINIME_TOKEN_FACTORY
 
 module.exports = async (
   truffleExecCallback,
@@ -25,6 +26,7 @@ module.exports = async (
     owner = defaultOwner,
     ensAddress = defaultENSAddress,
     daoFactoryAddress = defaultDAOFactoryAddress,
+    minimeTokenFactoryAddress = defaultMinimeTokenFactoryAddress,
     verbose = true
   } = {}
 ) => {
@@ -47,9 +49,9 @@ module.exports = async (
 
   log(`${kitName} with ENS ${ensAddress}, owner ${owner}`)
 
-  const TokenFactoryWrapper = artifacts.require('TokenFactoryWrapper')
   const DAOFactory = artifacts.require('DAOFactory')
   const ENS = artifacts.require('ENS')
+  const MiniMeTokenFactory = artifacts.require('MiniMeTokenFactory')
 
   if (!ensAddress) {
     errorOut('ENS environment variable not passed, aborting.')
@@ -76,34 +78,51 @@ module.exports = async (
     }
   }
 
-  const melonKit = await artifacts.require(kitName).new(daoFactoryAddress, ensAddress)
+  let minimeFac
+  if (minimeTokenFactoryAddress) {
+    log(`Using provided MiniMeTokenFactory: ${minimeTokenFactoryAddress}`)
+    minimeFac = MiniMeTokenFactory.at(minimeTokenFactoryAddress)
+  } else {
+    minimeFac = await MiniMeTokenFactory.new()
+    log('Deployed MiniMeTokenFactory:', minimeFac.address)
+  }
+
+  //const aragonid = await ens.owner(namehash('aragonid.eth'))
+
+  const melonKit = await artifacts.require(kitName).new(daoFactoryAddress, ensAddress, minimeFac.address)
   log('Kit address:', melonKit.address)
   await logDeploy(melonKit)
 
-  const melonReceipt = await melonKit.newInstance([], [owner])
-  log('Gas used:', melonReceipt.receipt.cumulativeGasUsed)
-  const melonAddress = getEventResult(melonReceipt, 'DeployInstance', 'dao')
+  const melonReceipt1 = await melonKit.newInstance1([], [owner])
+  const gasUsed1 = melonReceipt1.receipt.cumulativeGasUsed
+  const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
   log('Melon DAO address: ', melonAddress)
+  const melonReceipt2 = await melonKit.newInstance2(melonAddress, [owner])
+  const gasUsed2 = melonReceipt2.receipt.cumulativeGasUsed
+  log('Gas used:', gasUsed1, '+', gasUsed2, '=', parseInt(gasUsed1, 10) + parseInt(gasUsed2, 10))
 
   // generated tokens
-  const mainTokenAddress = getToken(melonReceipt, 0)
-  const mtcTokenAddress = getToken(melonReceipt, 1)
+  const mainTokenAddress = getToken(melonReceipt1, 0)
+  log('General Membership Token: ', mainTokenAddress)
+
+  const mtcTokenAddress = getToken(melonReceipt2, 0)
+  log('MTC Token: ', mtcTokenAddress)
 
   // generated apps
-  const financeAddress = getAppProxy(melonReceipt, appIds[0])
-  const mainTokenManagerAddress = getAppProxy(melonReceipt, appIds[1], 0)
-  const mtcTokenManagerAddress = getAppProxy(melonReceipt, appIds[1], 1)
-  const vaultAddress = getAppProxy(melonReceipt, appIds[2])
-  const mainVotingAddress = getAppProxy(melonReceipt, appIds[3], 0)
-  const supermajorityVotingAddress = getAppProxy(melonReceipt, appIds[3], 1)
-  const mtcVotingAddress = getAppProxy(melonReceipt, appIds[3], 2)
-
+  const vaultAddress = getAppProxy(melonReceipt1, appIds[2])
   log('Vault: ', vaultAddress)
+  const financeAddress = getAppProxy(melonReceipt1, appIds[0])
   log('Finance: ', financeAddress)
+  const mainTokenManagerAddress = getAppProxy(melonReceipt1, appIds[1], 0)
   log('General Membership Token Manager: ', mainTokenManagerAddress)
-  log('MTC Token Manager: ', mtcTokenManagerAddress)
+  const mainVotingAddress = getAppProxy(melonReceipt1, appIds[3], 0)
   log('General Memebership Voting: ', mainVotingAddress)
+  const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[3], 1)
   log('Supermajority Voting: ', supermajorityVotingAddress)
+
+  const mtcTokenManagerAddress = getAppProxy(melonReceipt2, appIds[1], 0)
+  log('MTC Token Manager: ', mtcTokenManagerAddress)
+  const mtcVotingAddress = getAppProxy(melonReceipt2, appIds[3], 0)
   log('MTC Voting: ', mtcVotingAddress)
 
   if (typeof truffleExecCallback === 'function') {

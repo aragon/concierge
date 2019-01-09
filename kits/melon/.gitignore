@@ -2,3 +2,4 @@ abis.json
 abi/
 build
 node_modules
+flattened_contracts

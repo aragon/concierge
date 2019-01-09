@@ -35,21 +35,24 @@ module.exports = async (callback) => {
   const network = process.argv[4]
 
   console.log(network)
-  // ENS
-  const { ens } = await deploy_ens(null, { artifacts, web3, owner })
 
-  // APM
-  await deploy_apm(null, {artifacts, web3, owner, ensAddress: ens.address })
+  let ens, apm
+  try {
+    // ENS
+    ens = (await deploy_ens(null, { artifacts, web3, owner })).ens
+
+    // APM
+    apm = (await deploy_apm(null, {artifacts, web3, owner, ensAddress: ens.address })).apm
+  } catch(e) {
+    console.error('Error deploying ENS/APM deps')
+    console.log(e)
+  }
 
   if (network == 'devnet' || network == 'rpc') { // Useful for testing to avoid manual deploys with aragon-dev-cli
-    const apmAddr = await artifacts.require('PublicResolver').at(await ens.resolver(namehash('aragonpm.eth'))).addr(namehash('aragonpm.eth'))
-    const apm = artifacts.require('APMRegistry').at(apmAddr)
-    console.log('APM', apmAddr);
-
     if (await ens.owner(appIds[0]) == '0x0000000000000000000000000000000000000000') {
       console.log('Deploying apps in local network')
       await newRepo(apm, 'finance', owner, 'Finance')
-      await newRepo(apm, 'token-manager', owner, 'Finance')
+      await newRepo(apm, 'token-manager', owner, 'TokenManager')
       await newRepo(apm, 'vault', owner, 'Vault')
       await newRepo(apm, 'voting', owner, 'Voting')
     }
