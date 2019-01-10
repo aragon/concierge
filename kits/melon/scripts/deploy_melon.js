@@ -118,7 +118,7 @@ module.exports = async (
     log('Supermajority Voting: ', supermajorityVotingAddress)
 
     // Second transaction
-    const melonReceipt2 = await melonKit.newInstance2(instanceName, melonAddress, mainVotingAddress, [owner])
+    const melonReceipt2 = await melonKit.newInstance2(instanceName, melonAddress, mainVotingAddress, supermajorityVotingAddress, [owner])
     const gasUsed2 = melonReceipt2.receipt.cumulativeGasUsed
 
     // generated tokens

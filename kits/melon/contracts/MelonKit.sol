@@ -113,18 +113,17 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         acl.createPermission(mainVoting, finance, finance.MANAGE_PAYMENTS_ROLE(), mainVoting);
 
         // General Membership Token Manager
+        acl.createPermission(mainVoting, mainTokenManager, mainTokenManager.ISSUE_ROLE(), mainVoting);
         acl.createPermission(mainVoting, mainTokenManager, mainTokenManager.ASSIGN_ROLE(), mainVoting);
-        acl.createPermission(mainVoting, mainTokenManager, mainTokenManager.REVOKE_VESTINGS_ROLE(), mainVoting);
+        acl.createPermission(mainVoting, mainTokenManager, mainTokenManager.BURN_ROLE(), mainVoting);
 
         // General Voting
         acl.createPermission(mainTokenManager, mainVoting, mainVoting.CREATE_VOTES_ROLE(), mainVoting);
         acl.createPermission(mainVoting, mainVoting, mainVoting.MODIFY_QUORUM_ROLE(), mainVoting);
         acl.createPermission(mainVoting, mainVoting, mainVoting.MODIFY_SUPPORT_ROLE(), mainVoting);
 
-        // Supermajority Voting
+        // Supermajority Voting permissions (more in next tx to balance gas)
         acl.createPermission(mainTokenManager, supermajorityVoting, supermajorityVoting.CREATE_VOTES_ROLE(), supermajorityVoting);
-        acl.createPermission(supermajorityVoting, supermajorityVoting, supermajorityVoting.MODIFY_QUORUM_ROLE(), supermajorityVoting);
-        acl.createPermission(supermajorityVoting, supermajorityVoting, supermajorityVoting.MODIFY_SUPPORT_ROLE(), supermajorityVoting);
 
         // Required for initializing the Token Manager
         mainToken.changeController(mainTokenManager);
@@ -151,8 +150,12 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         emit DeployInstance(dao);
     }
 
-    function newInstance2(string name, Kernel dao, Voting mainVoting, address[] mtcMembers) external {
+    function newInstance2(string name, Kernel dao, Voting mainVoting, Voting supermajorityVoting, address[] mtcMembers) external {
         ACL acl = ACL(dao.acl());
+
+        // Supermajority Voting permissions (here to balance gas among transactions)
+        acl.createPermission(supermajorityVoting, supermajorityVoting, supermajorityVoting.MODIFY_QUORUM_ROLE(), supermajorityVoting);
+        acl.createPermission(supermajorityVoting, supermajorityVoting, supermajorityVoting.MODIFY_SUPPORT_ROLE(), supermajorityVoting);
 
         Voting mtcVoting = Voting(dao.newAppInstance(votingAppId, latestVersionAppBase(votingAppId)));
         emit InstalledApp(mtcVoting, votingAppId);
@@ -182,8 +185,9 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         acl.createPermission(mtcVoting, mtcVoting, mtcVoting.MODIFY_SUPPORT_ROLE(), mtcVoting);
 
         // MTC Token Manager
-        acl.createPermission(mtcVoting, mtcTokenManager, mtcTokenManager.ASSIGN_ROLE(), mtcVoting);
-        acl.createPermission(mtcVoting, mtcTokenManager, mtcTokenManager.REVOKE_VESTINGS_ROLE(), mtcVoting);
+        acl.createPermission(supermajorityVoting, mtcTokenManager, mtcTokenManager.ISSUE_ROLE(), supermajorityVoting);
+        acl.createPermission(supermajorityVoting, mtcTokenManager, mtcTokenManager.ASSIGN_ROLE(), supermajorityVoting);
+        acl.createPermission(supermajorityVoting, mtcTokenManager, mtcTokenManager.BURN_ROLE(), supermajorityVoting);
 
         // Required for initializing the Token Manager
         mtcToken.changeController(mtcTokenManager);
@@ -197,7 +201,7 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         for (uint256 i = 0; i < mtcMembers.length; i++) {
             mtcTokenManager.mint(mtcMembers[i], 1);
         }
-        cleanupPermission(acl, mtcVoting, mtcTokenManager, mtcTokenManager.MINT_ROLE());
+        cleanupPermission(acl, supermajorityVoting, mtcTokenManager, mtcTokenManager.MINT_ROLE());
 
         // cleanup
         cleanupDAOPermissions(dao, acl, mainVoting);

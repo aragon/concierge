@@ -80,10 +80,10 @@ contract('Melon Kit', accounts => {
 
     // we assign tokens to accounts in index increasing order
     // all previous accounts, already token holders, vote yes to new assignment
-    const mintToken = async (tokenManagerApp, votingApp, accountIndex) => {
-      const action1 = { to: tokenManagerApp.address, calldata: tokenManagerApp.contract.mint.getData(accounts[accountIndex], 1) }
-      const voteId = await wrapVoteinTokenManager(action1, tokenManagerApp, votingApp, 'mint token')
-      for (let i = 0; i < accountIndex; i++) {
+    const mintToken = async (targetTokenManagerApp, wrapTokenManagerApp, votingApp, accountIndex, maxIndex) => {
+      const action1 = { to: targetTokenManagerApp.address, calldata: targetTokenManagerApp.contract.mint.getData(accounts[accountIndex], 1) }
+      const voteId = await wrapVoteinTokenManager(action1, wrapTokenManagerApp, votingApp, 'mint token')
+      for (let i = 0; i < maxIndex; i++) {
         await votingApp.vote(voteId, true, false, { from: accounts[i] })
       }
       await timeTravel(VOTING_TIME + 1)
@@ -92,9 +92,9 @@ contract('Melon Kit', accounts => {
 
     // mint tokens: 2 MEB + 4 MTC, owner is already in MTC, that gives 2 + 5
     for (let i = 1; i < MTC_NUM; i++)
-      await mintToken(mtcTokenManager, mtcVoting, i)
+      await mintToken(mtcTokenManager, mainTokenManager, supermajorityVoting, i, 1)
     for (let i = 1; i < MTC_NUM + MEB_NUM ; i++)
-      await mintToken(mainTokenManager, mainVoting, i)
+      await mintToken(mainTokenManager, mainTokenManager, mainVoting, i, i)
   })
 
   context('Creating a DAO and votes', () => {
@@ -109,7 +109,7 @@ contract('Melon Kit', accounts => {
       assert.equal((await supermajorityVoting.voteTime()).toString(), VOTING_TIME.toString())
     })
 
-    it('has correct permissions', async () =>{
+    it('has correct permissions', async () => {
       const dao = getContract('Kernel').at(daoAddress)
       const acl = getContract('ACL').at(await dao.acl())
 
@@ -139,9 +139,15 @@ contract('Melon Kit', accounts => {
       await checkRole(finance.address, await finance.MANAGE_PAYMENTS_ROLE(), mainVoting.address, 'Finance', 'MANAGE_PAYMENTS', mainVoting.address)
 
       // General Memebership TokenManager
-      // TODO
+      await checkRole(mainTokenManager.address, await mainTokenManager.MINT_ROLE(), mainVoting.address, 'General Memebership Token Manager', 'MINT_TOKENS')
+      await checkRole(mainTokenManager.address, await mainTokenManager.ISSUE_ROLE(), mainVoting.address, 'General Memebership Token Manager', 'ISSUE_TOKENS')
+      await checkRole(mainTokenManager.address, await mainTokenManager.ASSIGN_ROLE(), mainVoting.address, 'General Memebership Token Manager', 'ASSIGN_TOKENS')
+      await checkRole(mainTokenManager.address, await mainTokenManager.BURN_ROLE(), mainVoting.address, 'General Memebership Token Manager', 'BURN_TOKENS')
       // MTC TokenManager
-      // TODO
+      await checkRole(mtcTokenManager.address, await mtcTokenManager.MINT_ROLE(), supermajorityVoting.address, 'MTC Token Manager', 'MINT_TOKENS')
+      await checkRole(mtcTokenManager.address, await mtcTokenManager.ISSUE_ROLE(), supermajorityVoting.address, 'MTC Token Manager', 'ISSUE_TOKENS')
+      await checkRole(mtcTokenManager.address, await mtcTokenManager.ASSIGN_ROLE(), supermajorityVoting.address, 'MTC Token Manager', 'ASSIGN_TOKENS')
+      await checkRole(mtcTokenManager.address, await mtcTokenManager.BURN_ROLE(), supermajorityVoting.address, 'MTC Token Manager', 'BURN_TOKENS')
 
       // General Memebership Voting
       await checkRole(mainVoting.address, await mainVoting.CREATE_VOTES_ROLE(), mainVoting.address, 'MainVoting', 'CREATE_VOTES', mainTokenManager.address)
