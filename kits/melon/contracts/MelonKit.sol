@@ -40,6 +40,7 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
     bytes32 constant public votingAppId = apmNamehash("voting");
 
     MiniMeTokenFactory public minimeFac;
+    mapping (address => address) private daoCreator;
 
     event DeployToken(address token);
 
@@ -142,10 +143,16 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         }
         cleanupPermission(acl, mainVoting, mainTokenManager, mainTokenManager.MINT_ROLE());
 
+        // register dao creator
+        daoCreator[address(dao)] = msg.sender;
+
         emit DeployInstance(dao);
     }
 
     function newInstance2(Kernel dao, Voting mainVoting, Voting supermajorityVoting, address[] mtcMembers) external {
+        // ensure sender is the same as in newIsntance1
+        require(msg.sender == daoCreator[address(dao)]);
+
         ACL acl = ACL(dao.acl());
 
         // Supermajority Voting permissions (here to balance gas among transactions)

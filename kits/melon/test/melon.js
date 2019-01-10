@@ -24,6 +24,10 @@ const getVoteId = (receipt) => {
   )
   return web3.toDecimal(logs[0].topics[1])
 }
+const getEventResult = (receipt, event, param) => receipt.logs.filter(l => l.event == event)[0].args[param]
+const getAppProxy = (receipt, id, index=0) => receipt.logs.filter(l => l.event == 'InstalledApp' && l.args.appId == id)[index].args.appProxy
+const apps = ['finance', 'token-manager', 'vault', 'voting']
+const appIds = apps.map(app => namehash(require(`@aragon/apps-${app}/arapp`).environments.default.appName))
 
 contract('Melon Kit', accounts => {
   const ETH = '0x0'
@@ -34,7 +38,8 @@ contract('Melon Kit', accounts => {
   const VOTING_TIME = 48 * 3600 // 48h
   const MEB_NUM = 2
   const MTC_NUM = 5
-  let daoAddress,
+  let melonKit,
+      daoAddress,
       mainTokenManager, mtcTokenManager,
       finance, vault,
       mainVoting, supermajorityVoting, mtcVoting
@@ -55,6 +60,7 @@ contract('Melon Kit', accounts => {
   before(async () => {
     // create Melon Kit
     const {
+      melonKitAddress,
       melonAddress,
       mainTokenAddress,
       mtcTokenAddress,
@@ -66,6 +72,8 @@ contract('Melon Kit', accounts => {
       supermajorityVotingAddress,
       mtcVotingAddress
     } = await deployMelon(null, {artifacts, web3, owner})
+
+    melonKit = getContract('MelonKit').at(melonKitAddress)
 
     daoAddress = melonAddress
 
@@ -297,6 +305,26 @@ contract('Melon Kit', accounts => {
       await mainVoting.executeVote(voteId, {from: owner})
       //await logBalances(finance.address, vault.address)
       assert.equal((await getBalance(nonHolder)).toString(), receiverInitialBalance.plus(payment).toString(), 'Receiver didn\'t get the payment')
+    })
+  })
+
+  context('kit test', () => {
+    it('creates an instance if sender of second tx is the same', async () => {
+      const melonReceipt1 = await melonKit.newInstance1([], [owner], { from: owner })
+      const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
+      const mainVotingAddress = getAppProxy(melonReceipt1, appIds[3], 0)
+      const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[3], 1)
+      await melonKit.newInstance2(melonAddress, mainVotingAddress, supermajorityVotingAddress, [owner], { from: owner })
+    })
+
+    it('fails if sender of second tx is different', async () => {
+      const melonReceipt1 = await melonKit.newInstance1([], [owner], { from: owner })
+      const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
+      const mainVotingAddress = getAppProxy(melonReceipt1, appIds[3], 0)
+      const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[3], 1)
+      return assertRevert(async () => {
+        await melonKit.newInstance2(melonAddress, mainVotingAddress, supermajorityVotingAddress, [owner], { from: accounts[1] })
+      })
     })
   })
 

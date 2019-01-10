@@ -133,6 +133,7 @@ module.exports = async (
       truffleExecCallback()
     } else {
       return {
+        melonKitAddress: melonKit.address,
         melonAddress,
         mainTokenAddress,
         mtcTokenAddress,
