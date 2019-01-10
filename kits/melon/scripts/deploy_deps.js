@@ -3,7 +3,6 @@ const namehash = require('eth-ens-namehash').hash
 const getAccounts = require('@aragon/os/scripts/helpers/get-accounts')
 const deploy_ens = require('@aragon/os/scripts/deploy-test-ens.js')
 const deploy_apm = require('@aragon/os/scripts/deploy-apm.js')
-const deploy_id = require('@aragon/id/scripts/deploy-beta-aragonid.js')
 
 // ensure alphabetic order
 const apps = ['finance', 'token-manager', 'vault', 'voting']
@@ -45,11 +44,8 @@ module.exports = async (callback) => {
     // APM
     apm = (await deploy_apm(null, {artifacts, web3, owner, ensAddress: ens.address })).apm
 
-    // aragonID
-    await deploy_id(null, { artifacts, web3, ensAddress: ens.address })
-
   } catch(e) {
-    console.error('Error deploying ENS/APM/aragonID deps')
+    console.error('Error deploying ENS/APM deps')
     console.log(e)
   }
 
