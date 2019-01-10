@@ -1,5 +1,6 @@
 pragma solidity 0.4.24;
 
+import "@aragon/apps-actor/contracts/Actor.sol";
 import "@aragon/apps-finance/contracts/Finance.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
@@ -204,6 +205,16 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
             mtcTokenManager.mint(mtcMembers[i], 1);
         }
         cleanupPermission(acl, supermajorityVoting, mtcTokenManager, mtcTokenManager.MINT_ROLE());
+
+        // Actor apps
+        Actor protocolActor = Actor(dao.newAppInstance(actorAppId, latestVersionAppBase(actorAppId)));
+        emit InstalledApp(protocolActor, actorAppId);
+
+        Actor technicalActor = Actor(dao.newAppInstance(actorAppId, latestVersionAppBase(actorAppId)));
+        emit InstalledApp(technicalActor, actorAppId);
+
+        acl.createPermission(mainVoting, protocolActor, protocolActor.EXECUTE_ROLE(), mainVoting);
+        acl.createPermission(mtcVoting, technicalActor, technicalActor.EXECUTE_ROLE(), mtcVoting);
 
         // cleanup
         cleanupDAOPermissions(dao, acl, mainVoting);

@@ -8,7 +8,7 @@ const getEventResult = (receipt, event, param) => receipt.logs.filter(l => l.eve
 const getToken = (receipt, index=0) => receipt.logs.filter(l => l.event == 'DeployToken')[index].args.token
 const getAppProxy = (receipt, id, index=0) => receipt.logs.filter(l => l.event == 'InstalledApp' && l.args.appId == id)[index].args.appProxy
 
-const apps = ['finance', 'token-manager', 'vault', 'voting']
+const apps = ['actor', 'finance', 'token-manager', 'vault', 'voting']
 const appIds = apps.map(app => namehash(require(`@aragon/apps-${app}/arapp`).environments.default.appName))
 
 const globalArtifacts = this.artifacts // Not injected unless called directly via truffle
@@ -102,15 +102,15 @@ module.exports = async (
     const mainTokenAddress = getToken(melonReceipt1, 0)
     log('General Membership Token: ', mainTokenAddress)
     // generated apps
-    const vaultAddress = getAppProxy(melonReceipt1, appIds[2])
+    const vaultAddress = getAppProxy(melonReceipt1, appIds[3])
     log('Vault: ', vaultAddress)
-    const financeAddress = getAppProxy(melonReceipt1, appIds[0])
+    const financeAddress = getAppProxy(melonReceipt1, appIds[1])
     log('Finance: ', financeAddress)
-    const mainTokenManagerAddress = getAppProxy(melonReceipt1, appIds[1], 0)
+    const mainTokenManagerAddress = getAppProxy(melonReceipt1, appIds[2], 0)
     log('General Membership Token Manager: ', mainTokenManagerAddress)
-    const mainVotingAddress = getAppProxy(melonReceipt1, appIds[3], 0)
+    const mainVotingAddress = getAppProxy(melonReceipt1, appIds[4], 0)
     log('General Memebership Voting: ', mainVotingAddress)
-    const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[3], 1)
+    const supermajorityVotingAddress = getAppProxy(melonReceipt1, appIds[4], 1)
     log('Supermajority Voting: ', supermajorityVotingAddress)
 
     // Second transaction
@@ -121,10 +121,14 @@ module.exports = async (
     const mtcTokenAddress = getToken(melonReceipt2, 0)
     log('MTC Token: ', mtcTokenAddress)
     // generated apps
-    const mtcTokenManagerAddress = getAppProxy(melonReceipt2, appIds[1], 0)
+    const mtcTokenManagerAddress = getAppProxy(melonReceipt2, appIds[2], 0)
     log('MTC Token Manager: ', mtcTokenManagerAddress)
-    const mtcVotingAddress = getAppProxy(melonReceipt2, appIds[3], 0)
+    const mtcVotingAddress = getAppProxy(melonReceipt2, appIds[4], 0)
     log('MTC Voting: ', mtcVotingAddress)
+    const protocolActorAddress = getAppProxy(melonReceipt2, appIds[0], 0)
+    log('Protocol Actor: ', protocolActorAddress)
+    const technicalActorAddress = getAppProxy(melonReceipt2, appIds[0], 1)
+    log('Technical Actor: ', technicalActorAddress)
 
     log('Gas used:', gasUsed1, '+', gasUsed2, '=', parseInt(gasUsed1, 10) + parseInt(gasUsed2, 10))
 
@@ -143,7 +147,9 @@ module.exports = async (
         vaultAddress,
         mainVotingAddress,
         supermajorityVotingAddress,
-        mtcVotingAddress
+        mtcVotingAddress,
+        protocolActorAddress,
+        technicalActorAddress
       }
     }
   } catch(e) {
