@@ -45,7 +45,7 @@ module.exports = async (
     if (!owner) {
       const accounts = await getAccounts(web3)
       owner = accounts[0]
-      log('OWNER env variable not found, setting APM owner to the provider\'s first account')
+      log(`OWNER env variable not found, setting APM owner to the provider's first account: ${owner}`)
     }
 
     log(`${kitName} with ENS ${ensAddress}, owner ${owner}`)
@@ -93,6 +93,7 @@ module.exports = async (
     await logDeploy(melonKit)
 
     // First transaction
+    log('\n- First transaction:\n')
     const melonReceipt1 = await melonKit.newInstance1([], [owner])
     const gasUsed1 = melonReceipt1.receipt.cumulativeGasUsed
     const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
@@ -114,6 +115,7 @@ module.exports = async (
     log('Supermajority Voting: ', supermajorityVotingAddress)
 
     // Second transaction
+    log('\n- Second transaction:\n')
     const melonReceipt2 = await melonKit.newInstance2(melonAddress, mainVotingAddress, supermajorityVotingAddress, [owner])
     const gasUsed2 = melonReceipt2.receipt.cumulativeGasUsed
 
