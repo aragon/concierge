@@ -5,7 +5,8 @@ const deploy_ens = require('@aragon/os/scripts/deploy-test-ens.js')
 const deploy_apm = require('@aragon/os/scripts/deploy-apm.js')
 
 // ensure alphabetic order
-const apps = ['finance', 'token-manager', 'vault', 'voting']
+const apps = ['actor', 'finance', 'token-manager', 'vault', 'voting']
+const appContractNames = ['Actor', 'Finance', 'TokenManager', 'Vault', 'Voting']
 const appIds = apps.map(app => namehash(require(`@aragon/apps-${app}/arapp`).environments.default.appName))
 
 const newRepo = async (apm, name, acc, contract) => {
@@ -50,12 +51,11 @@ module.exports = async (callback) => {
   }
 
   if (network == 'devnet' || network == 'rpc') { // Useful for testing to avoid manual deploys with aragon-dev-cli
-    if (await ens.owner(appIds[0]) == '0x0000000000000000000000000000000000000000') {
-      console.log('Deploying apps in local network')
-      await newRepo(apm, 'finance', owner, 'Finance')
-      await newRepo(apm, 'token-manager', owner, 'TokenManager')
-      await newRepo(apm, 'vault', owner, 'Vault')
-      await newRepo(apm, 'voting', owner, 'Voting')
+    for (let i = 0; i < appIds.length; i++) {
+      if (await ens.owner(appIds[i]) == '0x0000000000000000000000000000000000000000') {
+        console.log(`Deploying ${apps[i]} in local network`)
+        await newRepo(apm, apps[i], owner, appContractNames[i])
+      }
     }
   }
 
