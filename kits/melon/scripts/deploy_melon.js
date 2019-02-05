@@ -27,6 +27,8 @@ module.exports = async (
     ensAddress = defaultENSAddress,
     daoFactoryAddress = defaultDAOFactoryAddress,
     minimeTokenFactoryAddress = defaultMinimeTokenFactoryAddress,
+    mainVotingVoteTime = 0,
+    supermajorityVotingVoteTime = 0,
     verbose = true
   } = {}
 ) => {
@@ -94,7 +96,13 @@ module.exports = async (
 
     // First transaction
     log('\n- First transaction:\n')
-    const melonReceipt1 = await melonKit.newInstance1([], [owner])
+
+    let melonReceipt1
+    if (mainVotingVoteTime > 0 && supermajorityVotingVoteTime > 0) {
+      melonReceipt1 = await melonKit.newInstance1WithVotingTimes([], [owner], mainVotingVoteTime, supermajorityVotingVoteTime)
+    } else {
+      melonReceipt1 = await melonKit.newInstance1([], [owner])
+    }
     const gasUsed1 = melonReceipt1.receipt.cumulativeGasUsed
     const melonAddress = getEventResult(melonReceipt1, 'DeployInstance', 'dao')
     log('Melon DAO address: ', melonAddress)

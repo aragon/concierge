@@ -31,6 +31,7 @@
     "eth-ens-namehash": "^2.0.8"
   },
   "devDependencies": {
+    "@aragon/kits-beta-base": "^1.0.0",
     "@aragon/test-helpers": "^1.0.0",
     "solium": "^1.0.4",
     "truffle": "4.1.14"
