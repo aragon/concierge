@@ -58,7 +58,12 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         minimeFac = _minimeFac;
     }
 
-    function newInstance1(address[] mebMembers, address[] mtcMembers) external {
+    function newInstance1WithVotingTimes(
+        address[] mebMembers,
+        address[] mtcMembers,
+        uint64 mainVotingVoteTime,
+        uint64 supermajorityVotingVoteTime
+    ) public {
         Kernel dao = fac.newDAO(this);
         ACL acl = ACL(dao.acl());
 
@@ -129,8 +134,8 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         vault.initialize();
         finance.initialize(vault, FINANCE_PERIOD_DURATION);
         mainTokenManager.initialize(mainToken, false, 1);
-        mainVoting.initialize(mainToken, MAIN_VOTING_SUPPORT, MAIN_VOTING_QUORUM, MAIN_VOTING_VOTE_TIME);
-        supermajorityVoting.initialize(mainToken, SUPERMAJORITY_VOTING_SUPPORT, SUPERMAJORITY_VOTING_QUORUM, SUPERMAJORITY_VOTING_VOTE_TIME);
+        mainVoting.initialize(mainToken, MAIN_VOTING_SUPPORT, MAIN_VOTING_QUORUM, mainVotingVoteTime);
+        supermajorityVoting.initialize(mainToken, SUPERMAJORITY_VOTING_SUPPORT, SUPERMAJORITY_VOTING_QUORUM, supermajorityVotingVoteTime);
 
         // Set up the token members
         acl.createPermission(this, mainTokenManager, mainTokenManager.MINT_ROLE(), this);
@@ -148,6 +153,10 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         daoCreator[address(dao)] = msg.sender;
 
         emit DeployInstance(dao);
+    }
+
+    function newInstance1(address[] mebMembers, address[] mtcMembers) external {
+        newInstance1WithVotingTimes(mebMembers, mtcMembers, MAIN_VOTING_VOTE_TIME, SUPERMAJORITY_VOTING_VOTE_TIME);
     }
 
     function newInstance2(Kernel dao, Voting mainVoting, Voting supermajorityVoting, address[] mtcMembers) external {
