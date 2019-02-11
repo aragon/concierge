@@ -60,7 +60,7 @@ module.exports = async (
       errorOut('ENS environment variable not passed, aborting.')
     }
     log('Using ENS', ensAddress)
-    const ens = ENS.at(ensAddress)
+    const ens = await ENS.at(ensAddress)
 
     if (!daoFactoryAddress) {
       const daoFactory = (await deployDAOFactory(null, { artifacts, verbose: false })).daoFactory
@@ -68,12 +68,12 @@ module.exports = async (
     }
     log(`Using DAOFactory: ${daoFactoryAddress}`)
 
-    const apmAddress = await artifacts.require('PublicResolver').at(await ens.resolver(namehash('aragonpm.eth'))).addr(namehash('aragonpm.eth'))
+    const apmAddress = await (await artifacts.require('PublicResolver').at(await ens.resolver(namehash('aragonpm.eth')))).addr(namehash('aragonpm.eth'))
     if (!apmAddress) {
       errorOut('No APM found for ENS, aborting.')
     }
     log('APM', apmAddress);
-    const apm = artifacts.require('APMRegistry').at(apmAddress)
+    const apm = await artifacts.require('APMRegistry').at(apmAddress)
 
     for (let i = 0; i < apps.length; i++) {
       if (await ens.owner(appIds[i]) == '0x0000000000000000000000000000000000000000') {
@@ -84,7 +84,7 @@ module.exports = async (
     let minimeFac
     if (minimeTokenFactoryAddress) {
       log(`Using provided MiniMeTokenFactory: ${minimeTokenFactoryAddress}`)
-      minimeFac = MiniMeTokenFactory.at(minimeTokenFactoryAddress)
+      minimeFac = await MiniMeTokenFactory.at(minimeTokenFactoryAddress)
     } else {
       minimeFac = await MiniMeTokenFactory.new()
       log('Deployed MiniMeTokenFactory:', minimeFac.address)

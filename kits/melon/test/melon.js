@@ -17,7 +17,7 @@ const Voting = artifacts.require('Voting')
 
 const getContract = name => artifacts.require(name)
 
-const pct16 = x => new web3.BigNumber(x).times(new web3.BigNumber(10).toPower(16))
+const pct16 = x => new web3.utils.BN(x).mul(new web3.utils.BN(10).pow(new web3.utils.BN(16)))
 const getVoteId = (receipt) => {
   const logs = receipt.receipt.logs.filter(
     l =>
@@ -51,7 +51,7 @@ contract('Melon Kit', accounts => {
 
   const wrapVoteinTokenManager = async(action1, tokenManagerApp, votingApp, metadata='metadata') => {
     const script1 = encodeCallScript([action1])
-    const action2 = { to: votingApp.address, calldata: votingApp.contract.newVote.getData(script1, metadata) }
+    const action2 = { to: votingApp.address, calldata: votingApp.contract.methods.newVote(script1, metadata).encodeABI() }
     const script2 = encodeCallScript([action2])
     const r = await tokenManagerApp.forward(script2, { from: owner })
     const voteId = getVoteId(r)
@@ -77,24 +77,24 @@ contract('Melon Kit', accounts => {
       technicalActorAddress
     } = await deployMelon(null, {artifacts, web3, owner})
 
-    melonKit = getContract('MelonKit').at(melonKitAddress)
+    melonKit = await getContract('MelonKit').at(melonKitAddress)
 
     daoAddress = melonAddress
 
-    finance = Finance.at(financeAddress)
-    mainTokenManager = TokenManager.at(mainTokenManagerAddress)
-    mtcTokenManager = TokenManager.at(mtcTokenManagerAddress)
-    vault = Vault.at(vaultAddress)
-    mainVoting = Voting.at(mainVotingAddress)
-    supermajorityVoting = Voting.at(supermajorityVotingAddress)
-    mtcVoting = Voting.at(mtcVotingAddress)
-    protocolActor = Actor.at(protocolActorAddress)
-    technicalActor = Actor.at(technicalActorAddress)
+    finance = await Finance.at(financeAddress)
+    mainTokenManager = await TokenManager.at(mainTokenManagerAddress)
+    mtcTokenManager = await TokenManager.at(mtcTokenManagerAddress)
+    vault = await Vault.at(vaultAddress)
+    mainVoting = await Voting.at(mainVotingAddress)
+    supermajorityVoting = await Voting.at(supermajorityVotingAddress)
+    mtcVoting = await Voting.at(mtcVotingAddress)
+    protocolActor = await Actor.at(protocolActorAddress)
+    technicalActor = await Actor.at(technicalActorAddress)
 
     // we assign tokens to accounts in index increasing order
     // all previous accounts, already token holders, vote yes to new assignment
     const mintToken = async (targetTokenManagerApp, wrapTokenManagerApp, votingApp, accountIndex, maxIndex) => {
-      const action1 = { to: targetTokenManagerApp.address, calldata: targetTokenManagerApp.contract.mint.getData(accounts[accountIndex], 1) }
+      const action1 = { to: targetTokenManagerApp.address, calldata: targetTokenManagerApp.contract.metods.mint(accounts[accountIndex], 1).encodeABI() }
       const voteId = await wrapVoteinTokenManager(action1, wrapTokenManagerApp, votingApp, 'mint token')
       for (let i = 0; i < maxIndex; i++) {
         await votingApp.vote(voteId, true, false, { from: accounts[i] })
@@ -123,8 +123,8 @@ contract('Melon Kit', accounts => {
     })
 
     it('has correct permissions', async () => {
-      const dao = getContract('Kernel').at(daoAddress)
-      const acl = getContract('ACL').at(await dao.acl())
+      const dao = await getContract('Kernel').at(daoAddress)
+      const acl = await getContract('ACL').at(await dao.acl())
 
       const checkRole = async (appAddress, permission, managerAddress, appName='', roleName='', granteeAddress=managerAddress) => {
         assert.equal(await acl.getPermissionManager(appAddress, permission), managerAddress, `${appName} ${roleName} Manager should match`)
@@ -139,7 +139,7 @@ contract('Melon Kit', accounts => {
 
       // evm script registry
       const regConstants = await getContract('EVMScriptRegistryConstants').new()
-      const reg = getContract('EVMScriptRegistry').at(await acl.getEVMScriptRegistry())
+      const reg = await getContract('EVMScriptRegistry').at(await acl.getEVMScriptRegistry())
       assert.equal(await acl.getPermissionManager(reg.address, await reg.REGISTRY_ADD_EXECUTOR_ROLE()), NO_ADDRESS, 'EVMScriptRegistry ADD_EXECUTOR Manager should match')
       assert.equal(await acl.getPermissionManager(reg.address, await reg.REGISTRY_MANAGER_ROLE()), NO_ADDRESS, 'EVMScriptRegistry REGISTRY_MANAGER Manager should match')
 
@@ -207,7 +207,7 @@ contract('Melon Kit', accounts => {
           votingApp = votingApps[votingType]
           tokenManagerApp = tokenManagerApps[votingType]
           executionTarget = await getContract('ExecutionTarget').new()
-          const action = { to: executionTarget.address, calldata: executionTarget.contract.execute.getData() }
+          const action = { to: executionTarget.address, calldata: executionTarget.contract.methods.execute().encodeABI() }
           script = encodeCallScript([action])
           voteId = await wrapVoteinTokenManager(action, tokenManagerApp, votingApp)
         })
@@ -291,11 +291,11 @@ contract('Melon Kit', accounts => {
 
   context('finance access', () => {
     let voteId = {}, script
-    const payment = new web3.BigNumber(2e16)
+    const payment = (new web3.utils.BN(2)).pow(new web3.utils.BN(16))
     beforeEach(async () => {
       // Fund Finance
       await finance.sendTransaction({ value: payment, from: owner })
-      const action = { to: finance.address, calldata: finance.contract.newPayment.getData(ETH, nonHolder, payment, 0, 0, 1, "voting payment") }
+      const action = { to: finance.address, calldata: finance.contract.methods.newPayment(ETH, nonHolder, payment, 0, 0, 1, "voting payment").encodeABI() }
       voteId = await wrapVoteinTokenManager(action, mainTokenManager, mainVoting)
     })
 
