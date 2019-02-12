@@ -33,9 +33,11 @@ const pct16 = x => new web3.utils.BN(x).mul(new web3.utils.BN(10).pow(new web3.u
 const getVoteId = (receipt) => {
   const logs = receipt.receipt.logs.filter(
     l =>
-      l.topics[0] == web3.sha3('StartVote(uint256,address,string)')
+      l.event == 'StartVote'
+//      l.topics[0] == web3.sha3('StartVote(uint256,address,string)')
   )
-  return web3.toDecimal(logs[0].topics[1])
+  //return web3.toDecimal(logs[0].topics[1])
+  return web3.toDecimal(logs[0].args[0])
 }
 const getEventResult = (receipt, event, param) => receipt.logs.filter(l => l.event == event)[0].args[param]
 const getAppProxy = (receipt, id, index=0) => receipt.logs.filter(l => l.event == 'InstalledApp' && l.args.appId == id)[index].args.appProxy
@@ -66,7 +68,10 @@ contract('Melon Kit', accounts => {
     const action2 = { to: votingApp.address, calldata: votingApp.contract.methods.newVote(script1, metadata).encodeABI() }
     const script2 = encodeCallScript([action2])
     const r = await tokenManagerApp.forward(script2, { from: owner })
+    console.log('inner logs', r.receipt.logs.length)
+    console.log('outer logs', r.logs.length)
     const voteId = getVoteId(r)
+    console.log('vote id', voteId)
 
     return voteId
   }
