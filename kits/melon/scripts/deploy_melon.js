@@ -8,7 +8,7 @@ const getEventResult = (receipt, event, param) => receipt.logs.filter(l => l.eve
 const getToken = (receipt, index=0) => receipt.logs.filter(l => l.event == 'DeployToken')[index].args.token
 const getAppProxy = (receipt, id, index=0) => receipt.logs.filter(l => l.event == 'InstalledApp' && l.args.appId == id)[index].args.appProxy
 
-const apps = ['actor', 'finance', 'token-manager', 'vault', 'voting']
+const apps = ['agent', 'finance', 'token-manager', 'vault', 'voting']
 const appIds = apps.map(app => namehash(require(`@aragon/apps-${app}/arapp`).environments.default.appName))
 
 const globalArtifacts = this.artifacts // Not injected unless called directly via truffle
@@ -135,10 +135,10 @@ module.exports = async (
     log('MTC Token Manager: ', mtcTokenManagerAddress)
     const mtcVotingAddress = getAppProxy(melonReceipt2, appIds[4], 0)
     log('MTC Voting: ', mtcVotingAddress)
-    const protocolActorAddress = getAppProxy(melonReceipt2, appIds[0], 0)
-    log('Protocol Actor: ', protocolActorAddress)
-    const technicalActorAddress = getAppProxy(melonReceipt2, appIds[0], 1)
-    log('Technical Actor: ', technicalActorAddress)
+    const protocolAgentAddress = getAppProxy(melonReceipt2, appIds[0], 0)
+    log('Protocol Agent: ', protocolAgentAddress)
+    const technicalAgentAddress = getAppProxy(melonReceipt2, appIds[0], 1)
+    log('Technical Agent: ', technicalAgentAddress)
 
     log('Gas used:', gasUsed1, '+', gasUsed2, '=', parseInt(gasUsed1, 10) + parseInt(gasUsed2, 10))
 
@@ -158,8 +158,8 @@ module.exports = async (
         mainVotingAddress,
         supermajorityVotingAddress,
         mtcVotingAddress,
-        protocolActorAddress,
-        technicalActorAddress
+        protocolAgentAddress,
+        technicalAgentAddress
       }
     }
   } catch(e) {

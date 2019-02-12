@@ -21,7 +21,7 @@ const keccak256 = require('js-sha3').keccak_256
 const { encodeCallScript, EMPTY_SCRIPT } = require('@aragon/test-helpers/evmScript')
 const deployMelon = require('../scripts/deploy_melon.js')
 
-const Actor = artifacts.require('Actor')
+const Agent = artifacts.require('Agent')
 const Finance = artifacts.require('Finance')
 const TokenManager = artifacts.require('TokenManager')
 const Vault = artifacts.require('Vault')
@@ -56,7 +56,7 @@ contract('Melon Kit', accounts => {
       mainTokenManager, mtcTokenManager,
       finance, vault,
       mainVoting, supermajorityVoting, mtcVoting,
-      protocolActor, technicalActor
+      protocolAgent, technicalAgent
 
   const owner = accounts[0]
   const nonHolder = accounts[MEB_NUM + MTC_NUM]
@@ -85,8 +85,8 @@ contract('Melon Kit', accounts => {
       mainVotingAddress,
       supermajorityVotingAddress,
       mtcVotingAddress,
-      protocolActorAddress,
-      technicalActorAddress
+      protocolAgentAddress,
+      technicalAgentAddress
     } = await deployMelon(null, {
       artifacts,
       web3,
@@ -117,8 +117,8 @@ contract('Melon Kit', accounts => {
     mainVoting = await Voting.at(mainVotingAddress)
     supermajorityVoting = await Voting.at(supermajorityVotingAddress)
     mtcVoting = await Voting.at(mtcVotingAddress)
-    protocolActor = await Actor.at(protocolActorAddress)
-    technicalActor = await Actor.at(technicalActorAddress)
+    protocolAgent = await Agent.at(protocolAgentAddress)
+    technicalAgent = await Agent.at(technicalAgentAddress)
 
     // we assign tokens to accounts in index increasing order
     // all previous accounts, already token holders, vote yes to new assignment
@@ -218,9 +218,9 @@ contract('Melon Kit', accounts => {
       await checkRole(mtcVoting.address, await mtcVoting.MODIFY_QUORUM_ROLE(), mtcVoting.address, 'MtcVoting', 'MODIFY_QUORUM')
       await checkRole(mtcVoting.address, await mtcVoting.MODIFY_SUPPORT_ROLE(), mtcVoting.address, 'MtcVoting', 'MODIFY_SUPPORT')
 
-      // Protocol Actor
-      await checkRole(protocolActor.address, await protocolActor.EXECUTE_ROLE(), mainVoting.address, 'Protocol Actor', 'EXECUTE')
-      await checkRole(technicalActor.address, await technicalActor.EXECUTE_ROLE(), mtcVoting.address, 'Technical Actor', 'EXECUTE')
+      // Protocol Agent
+      await checkRole(protocolAgent.address, await protocolAgent.EXECUTE_ROLE(), mainVoting.address, 'Protocol Agent', 'EXECUTE')
+      await checkRole(technicalAgent.address, await technicalAgent.EXECUTE_ROLE(), mtcVoting.address, 'Technical Agent', 'EXECUTE')
     })
 
     for (const votingType of ['Main', 'Supermajority', 'MTC']) {

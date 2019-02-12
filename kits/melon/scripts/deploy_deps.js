@@ -5,8 +5,8 @@ const deploy_ens = require('@aragon/os/scripts/deploy-test-ens.js')
 const deploy_apm = require('@aragon/os/scripts/deploy-apm.js')
 
 // ensure alphabetic order
-const apps = ['actor', 'finance', 'token-manager', 'vault', 'voting']
-const appContractNames = ['Actor', 'Finance', 'TokenManager', 'Vault', 'Voting']
+const apps = ['agent', 'finance', 'token-manager', 'vault', 'voting']
+const appContractNames = ['Agent', 'Finance', 'TokenManager', 'Vault', 'Voting']
 const appIds = apps.map(app => namehash(require(`@aragon/apps-${app}/arapp`).environments.default.appName))
 
 const newRepo = async (apm, name, acc, contract) => {
