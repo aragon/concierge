@@ -1,6 +1,6 @@
 pragma solidity 0.4.24;
 
-import "@aragon/apps-actor/contracts/Actor.sol";
+import "@aragon/apps-agent/contracts/Agent.sol";
 import "@aragon/apps-finance/contracts/Finance.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
@@ -34,7 +34,7 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
 
     uint64 constant public FINANCE_PERIOD_DURATION = 7889400; // 365.25 days / 4
 
-    bytes32 constant public actorAppId = apmNamehash("actor");
+    bytes32 constant public agentAppId = apmNamehash("agent");
     bytes32 constant public financeAppId = apmNamehash("finance");
     bytes32 constant public tokenManagerAppId = apmNamehash("token-manager");
     bytes32 constant public vaultAppId = apmNamehash("vault");
@@ -215,15 +215,15 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         }
         cleanupPermission(acl, supermajorityVoting, mtcTokenManager, mtcTokenManager.MINT_ROLE());
 
-        // Actor apps
-        Actor protocolActor = Actor(dao.newAppInstance(actorAppId, latestVersionAppBase(actorAppId)));
-        emit InstalledApp(protocolActor, actorAppId);
+        // Agent apps
+        Agent protocolAgent = Agent(dao.newAppInstance(agentAppId, latestVersionAppBase(agentAppId)));
+        emit InstalledApp(protocolAgent, agentAppId);
 
-        Actor technicalActor = Actor(dao.newAppInstance(actorAppId, latestVersionAppBase(actorAppId)));
-        emit InstalledApp(technicalActor, actorAppId);
+        Agent technicalAgent = Agent(dao.newAppInstance(agentAppId, latestVersionAppBase(agentAppId)));
+        emit InstalledApp(technicalAgent, agentAppId);
 
-        acl.createPermission(mainVoting, protocolActor, protocolActor.EXECUTE_ROLE(), mainVoting);
-        acl.createPermission(mtcVoting, technicalActor, technicalActor.EXECUTE_ROLE(), mtcVoting);
+        acl.createPermission(mainVoting, protocolAgent, protocolAgent.EXECUTE_ROLE(), mainVoting);
+        acl.createPermission(mtcVoting, technicalAgent, technicalAgent.EXECUTE_ROLE(), mtcVoting);
 
         // cleanup
         cleanupDAOPermissions(dao, acl, mainVoting);
