@@ -20,17 +20,17 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
     string constant private MTC_TOKEN_SYMBOL = "MTC";
     string constant private MTC_TOKEN_NAME = "Melon Technical Council";
 
-    uint64 constant public MAIN_VOTING_SUPPORT = 50 * 10**16; // > 50%
-    uint64 constant public MAIN_VOTING_QUORUM = 0; // Just 1 vote is enough
-    uint64 constant public MAIN_VOTING_VOTE_TIME = 48 hours;
+    uint64 constant public MAIN_VOTING_SUPPORT = 50 * 10**16; // support not relevant here
+    uint64 constant public MAIN_VOTING_QUORUM = 50 * 10**16; // > 50%
+    uint64 constant public MAIN_VOTING_VOTE_TIME = 2 weeks;
 
-    uint64 constant public SUPERMAJORITY_VOTING_SUPPORT = 666666666666666666; // > two thirds
-    uint64 constant public SUPERMAJORITY_VOTING_QUORUM = 0; // Just 1 vote is enough
-    uint64 constant public SUPERMAJORITY_VOTING_VOTE_TIME = 48 hours;
+    uint64 constant public SUPERMAJORITY_VOTING_SUPPORT = 666666666666666666; // support not relevant here
+    uint64 constant public SUPERMAJORITY_VOTING_QUORUM = 666666666666666666; // >2/3
+    uint64 constant public SUPERMAJORITY_VOTING_VOTE_TIME = 2 weeks;
 
-    uint64 constant public MTC_VOTING_SUPPORT = 50 * 10**16; // > 50%
-    uint64 constant public MTC_VOTING_QUORUM = 0; // Just 1 vote is enough
-    uint64 constant public MTC_VOTING_VOTE_TIME = 48 hours;
+    uint64 constant public MTC_VOTING_SUPPORT = 50 * 10**16; // support not relevant here
+    uint64 constant public MTC_VOTING_QUORUM = 50 * 10**16; // > 50%
+    uint64 constant public MTC_VOTING_VOTE_TIME = 2 weeks;
 
     uint64 constant public FINANCE_PERIOD_DURATION = 7889400; // 365.25 days / 4
 
