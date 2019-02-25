@@ -122,6 +122,16 @@ contract('Melon Kit', accounts => {
       assert.equal((await supermajorityVoting.voteTime()).toString(), VOTING_TIME.toString())
     })
 
+    it('all apps are initialized', async () => {
+      const apps = [finance, vault,
+                    mainTokenManager, mtcTokenManager,
+                    mainVoting, supermajorityVoting, mtcVoting,
+                    protocolAgent, technicalAgent]
+      await Promise.all(
+        apps.map(async(app) => assert.isTrue(await app.hasInitialized(), `App not initialzed: ${app.constructor._json.contractName}`))
+      )
+    })
+
     it('has correct permissions', async () => {
       const dao = getContract('Kernel').at(daoAddress)
       const acl = getContract('ACL').at(await dao.acl())

@@ -222,6 +222,11 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         Agent technicalAgent = Agent(dao.newAppInstance(agentAppId, latestVersionAppBase(agentAppId)));
         emit InstalledApp(technicalAgent, agentAppId);
 
+        // init
+        protocolAgent.initialize();
+        technicalAgent.initialize();
+
+        // permissions
         acl.createPermission(mainVoting, protocolAgent, protocolAgent.EXECUTE_ROLE(), mainVoting);
         acl.createPermission(mtcVoting, technicalAgent, technicalAgent.EXECUTE_ROLE(), mtcVoting);
 
