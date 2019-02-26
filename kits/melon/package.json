@@ -22,19 +22,18 @@
     "deploy:mainnet": "ENS=0x314159265dd8dbb310642f98f50c066173c1259b DAO_FACTORY=0x595b34c93aa2c2ba0a38daeede629a0dfbdcc559 MINIME_TOKEN_FACTORY=0x909d05f384d0663ed4be59863815ab43b4f347ec truffle exec --network mainnet scripts/deploy_melon.js"
   },
   "dependencies": {
-    "@aragon/apps-shared-minime": "^1.0.0",
-    "@aragon/apps-shared-migrations": "^1.0.0",
-    "@aragon/apps-agent": "^1.0.1",
-    "@aragon/apps-finance": "^2.1.0",
-    "@aragon/apps-token-manager": "^2.0.0",
-    "@aragon/apps-vault": "^4.0.0",
-    "@aragon/apps-voting": "^2.0.0",
-    "@aragon/kits-base": "^1.0.0",
-    "@aragon/os": "^4.0.1",
+    "@aragon/apps-shared-minime": "1.0.0",
+    "@aragon/apps-shared-migrations": "1.0.0",
+    "@aragon/apps-agent": "1.0.1",
+    "@aragon/apps-finance": "2.1.0",
+    "@aragon/apps-token-manager": "2.0.0",
+    "@aragon/apps-vault": "4.0.0",
+    "@aragon/apps-voting": "2.0.0",
+    "@aragon/kits-base": "1.0.0",
+    "@aragon/os": "4.0.1",
     "eth-ens-namehash": "^2.0.8"
   },
   "devDependencies": {
-    "@aragon/kits-beta-base": "^1.0.0",
     "@aragon/test-helpers": "^1.0.0",
     "ganache-cli": "^6.0.3",
     "solium": "^1.0.4",

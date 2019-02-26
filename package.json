@@ -5,7 +5,7 @@
   "author": "Aragon Assocation <legal@aragon.org>",
   "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
   "devDependencies": {
-    "lerna": "^2.8.0"
+    "lerna": "^3.0.0"
   },
   "scripts": {
     "install": "npm run bootstrap",
