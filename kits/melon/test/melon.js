@@ -123,10 +123,17 @@ contract('Melon Kit', accounts => {
     })
 
     it('all apps are initialized', async () => {
-      const apps = [finance, vault,
-                    mainTokenManager, mtcTokenManager,
-                    mainVoting, supermajorityVoting, mtcVoting,
-                    protocolAgent, technicalAgent]
+      const apps = [
+        finance,
+        vault,
+        mainTokenManager,
+        mtcTokenManager,
+        mainVoting,
+        supermajorityVoting,
+        mtcVoting,
+        protocolAgent,
+        technicalAgent
+      ]
       await Promise.all(
         apps.map(async(app) => assert.isTrue(await app.hasInitialized(), `App not initialzed: ${app.constructor._json.contractName}`))
       )
