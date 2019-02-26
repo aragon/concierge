@@ -1,8 +1,20 @@
 const getBlockNumber = require('@aragon/test-helpers/blockNumber')(web3)
 const getBlock = require('@aragon/test-helpers/block')(web3)
 const getBalance = require('@aragon/test-helpers/balance')(web3)
-const timeTravel = require('@aragon/test-helpers/timeTravel')(web3)
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const timeTravel = function(s) {
+  return new Promise(resolve => setTimeout(resolve, s * 1000));
+}
+const assertRevert  = async (f) => {
+  try {
+    await f()
+  } catch (err) {
+    if (!err.receipt)
+      console.log('  ---> error catched - No receipt!!', err)
+    assert.equal(err.receipt.status, 0, "It should have thrown")
+    return
+  }
+  assert.isFalse(true, "It should have thrown")
+}
 const namehash = require('eth-ens-namehash').hash
 const keccak256 = require('js-sha3').keccak_256
 
@@ -36,7 +48,7 @@ contract('Melon Kit', accounts => {
   const NEEDED_SUPPORT = pct16(50)
   const NEEDED_SUPPORT_SUPERMAJORITY = '666666666666666666'
   const MINIMUM_ACCEPTANCE_QUORUM = 0
-  const VOTING_TIME = 48 * 3600 // 48h
+  const VOTING_TIME = 30
   const MEB_NUM = 2
   const MTC_NUM = 5
   let melonKit,
@@ -75,7 +87,24 @@ contract('Melon Kit', accounts => {
       mtcVotingAddress,
       protocolAgentAddress,
       technicalAgentAddress
-    } = await deployMelon(null, {artifacts, web3, owner})
+    } = await deployMelon(null, {
+      artifacts,
+      web3,
+      owner,
+      mainVotingVoteTime: VOTING_TIME,
+      supermajorityVotingVoteTime: VOTING_TIME
+    })
+
+    // transfer some ETH to other accounts
+    const accountIds = Array.from(new Array(MEB_NUM + MTC_NUM), (val, index) => index + 1)
+    await Promise.all(
+      accountIds.map(async i => {
+        await web3.eth.sendTransaction({ from: owner, to: accounts[i], value: web3.toWei(1, 'ether') }, function(err, transactionHash) {
+          if (err) console.log(i, err)
+        })
+      })
+    )
+    await timeTravel(10)
 
     melonKit = getContract('MelonKit').at(melonKitAddress)
 
@@ -96,18 +125,36 @@ contract('Melon Kit', accounts => {
     const mintToken = async (targetTokenManagerApp, wrapTokenManagerApp, votingApp, accountIndex, maxIndex) => {
       const action1 = { to: targetTokenManagerApp.address, calldata: targetTokenManagerApp.contract.mint.getData(accounts[accountIndex], 1) }
       const voteId = await wrapVoteinTokenManager(action1, wrapTokenManagerApp, votingApp, 'mint token')
+      /*
       for (let i = 0; i < maxIndex; i++) {
         await votingApp.vote(voteId, true, false, { from: accounts[i] })
       }
+      */
+      await votingApp.vote(voteId, true, false, { from: owner })
       await timeTravel(VOTING_TIME + 1)
       await votingApp.executeVote(voteId, {from: owner})
     }
 
     // mint tokens: 2 MEB + 4 MTC, owner is already in MTC, that gives 2 + 5
+    const mtcAccountIds = Array.from(new Array(MTC_NUM - 1), (val, index) => index + 1)
+    await Promise.all(
+      mtcAccountIds.map(async i => {
+        await mintToken(mtcTokenManager, mainTokenManager, supermajorityVoting, i, 1)
+      })
+    )
+
+    const mainAccountIds = Array.from(new Array(MTC_NUM + MEB_NUM - 1), (val, index) => index + 1)
+    await Promise.all(
+      mainAccountIds.map(async i => {
+        await mintToken(mainTokenManager, mainTokenManager, mainVoting, i, i)
+      })
+    )
+    /*
     for (let i = 1; i < MTC_NUM; i++)
       await mintToken(mtcTokenManager, mainTokenManager, supermajorityVoting, i, 1)
     for (let i = 1; i < MTC_NUM + MEB_NUM ; i++)
       await mintToken(mainTokenManager, mainTokenManager, mainVoting, i, i)
+    */
   })
 
   context('Creating a DAO and votes', () => {
@@ -120,23 +167,6 @@ contract('Melon Kit', accounts => {
       assert.equal((await supermajorityVoting.supportRequiredPct()).toString(), NEEDED_SUPPORT_SUPERMAJORITY)
       assert.equal((await supermajorityVoting.minAcceptQuorumPct()).toString(), MINIMUM_ACCEPTANCE_QUORUM.toString())
       assert.equal((await supermajorityVoting.voteTime()).toString(), VOTING_TIME.toString())
-    })
-
-    it('all apps are initialized', async () => {
-      const apps = [
-        finance,
-        vault,
-        mainTokenManager,
-        mtcTokenManager,
-        mainVoting,
-        supermajorityVoting,
-        mtcVoting,
-        protocolAgent,
-        technicalAgent
-      ]
-      await Promise.all(
-        apps.map(async(app) => assert.isTrue(await app.hasInitialized(), `App not initialzed: ${app.constructor._json.contractName}`))
-      )
     })
 
     it('has correct permissions', async () => {
@@ -267,7 +297,7 @@ contract('Melon Kit', accounts => {
         })
 
         it('throws when voting after voting closes', async () => {
-          await timeTravel(VOTING_TIME + 1)
+          await timeTravel(VOTING_TIME + 20)
           return assertRevert(async () => {
             await votingApp.vote(voteId, true, true, { from: accounts[2] })
           })

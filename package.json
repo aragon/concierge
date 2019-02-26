@@ -1,0 +1,21 @@
+{
+  "name": "@aragon/monorepo-concierge",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Aragon Assocation <legal@aragon.org>",
+  "license": "(GPL-3.0-or-later OR AGPL-3.0-or-later)",
+  "devDependencies": {
+    "lerna": "^3.0.0"
+  },
+  "scripts": {
+    "install": "npm run bootstrap",
+    "bootstrap": "lerna bootstrap",
+    "test": "npm run test:all",
+    "test:all": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream test",
+    "test:melon": "lerna run --scope=@aragon/kits-melon --stream test",
+    "lint": "lerna run --scope=@aragon/kits-* lint",
+    "deploy:devnet": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream deploy:devnet",
+    "deploy:rpc": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream deploy:rpc",
+    "deploy:rinkeby": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream deploy:rinkeby"
+  }
+}

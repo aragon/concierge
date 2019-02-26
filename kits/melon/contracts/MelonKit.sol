@@ -1,6 +1,6 @@
 pragma solidity 0.4.24;
 
-import "@aragon/apps-actor/contracts/Actor.sol";
+import "@aragon/apps-agent/contracts/Agent.sol";
 import "@aragon/apps-finance/contracts/Finance.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
@@ -34,7 +34,7 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
 
     uint64 constant public FINANCE_PERIOD_DURATION = 7889400; // 365.25 days / 4
 
-    bytes32 constant public actorAppId = apmNamehash("actor");
+    bytes32 constant public agentAppId = apmNamehash("agent");
     bytes32 constant public financeAppId = apmNamehash("finance");
     bytes32 constant public tokenManagerAppId = apmNamehash("token-manager");
     bytes32 constant public vaultAppId = apmNamehash("vault");
@@ -58,7 +58,12 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         minimeFac = _minimeFac;
     }
 
-    function newInstance1(address[] mebMembers, address[] mtcMembers) external {
+    function newInstance1WithVotingTimes(
+        address[] mebMembers,
+        address[] mtcMembers,
+        uint64 mainVotingVoteTime,
+        uint64 supermajorityVotingVoteTime
+    ) public {
         Kernel dao = fac.newDAO(this);
         ACL acl = ACL(dao.acl());
 
@@ -129,8 +134,8 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         vault.initialize();
         finance.initialize(vault, FINANCE_PERIOD_DURATION);
         mainTokenManager.initialize(mainToken, false, 1);
-        mainVoting.initialize(mainToken, MAIN_VOTING_SUPPORT, MAIN_VOTING_QUORUM, MAIN_VOTING_VOTE_TIME);
-        supermajorityVoting.initialize(mainToken, SUPERMAJORITY_VOTING_SUPPORT, SUPERMAJORITY_VOTING_QUORUM, SUPERMAJORITY_VOTING_VOTE_TIME);
+        mainVoting.initialize(mainToken, MAIN_VOTING_SUPPORT, MAIN_VOTING_QUORUM, mainVotingVoteTime);
+        supermajorityVoting.initialize(mainToken, SUPERMAJORITY_VOTING_SUPPORT, SUPERMAJORITY_VOTING_QUORUM, supermajorityVotingVoteTime);
 
         // Set up the token members
         acl.createPermission(this, mainTokenManager, mainTokenManager.MINT_ROLE(), this);
@@ -148,6 +153,10 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         daoCreator[address(dao)] = msg.sender;
 
         emit DeployInstance(dao);
+    }
+
+    function newInstance1(address[] mebMembers, address[] mtcMembers) external {
+        newInstance1WithVotingTimes(mebMembers, mtcMembers, MAIN_VOTING_VOTE_TIME, SUPERMAJORITY_VOTING_VOTE_TIME);
     }
 
     function newInstance2(Kernel dao, Voting mainVoting, Voting supermajorityVoting, address[] mtcMembers) external {
@@ -206,15 +215,20 @@ contract MelonKit is KitBase, APMNamehash, IsContract {
         }
         cleanupPermission(acl, supermajorityVoting, mtcTokenManager, mtcTokenManager.MINT_ROLE());
 
-        // Actor apps
-        Actor protocolActor = Actor(dao.newAppInstance(actorAppId, latestVersionAppBase(actorAppId)));
-        emit InstalledApp(protocolActor, actorAppId);
+        // Agent apps
+        Agent protocolAgent = Agent(dao.newAppInstance(agentAppId, latestVersionAppBase(agentAppId)));
+        emit InstalledApp(protocolAgent, agentAppId);
 
-        Actor technicalActor = Actor(dao.newAppInstance(actorAppId, latestVersionAppBase(actorAppId)));
-        emit InstalledApp(technicalActor, actorAppId);
+        Agent technicalAgent = Agent(dao.newAppInstance(agentAppId, latestVersionAppBase(agentAppId)));
+        emit InstalledApp(technicalAgent, agentAppId);
 
-        acl.createPermission(mainVoting, protocolActor, protocolActor.EXECUTE_ROLE(), mainVoting);
-        acl.createPermission(mtcVoting, technicalActor, technicalActor.EXECUTE_ROLE(), mtcVoting);
+        // init
+        protocolAgent.initialize();
+        technicalAgent.initialize();
+
+        // permissions
+        acl.createPermission(mainVoting, protocolAgent, protocolAgent.EXECUTE_ROLE(), mainVoting);
+        acl.createPermission(mtcVoting, technicalAgent, technicalAgent.EXECUTE_ROLE(), mtcVoting);
 
         // cleanup
         cleanupDAOPermissions(dao, acl, mainVoting);
