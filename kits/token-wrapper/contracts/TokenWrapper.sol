@@ -18,6 +18,7 @@ contract TokenWrapper is ITokenController, IForwarder, AragonApp {
     string private constant ERROR_CAN_NOT_FORWARD = "TW_CAN_NOT_FORWARD";
     string private constant ERROR_CALLER_NOT_TOKEN = "TW_CALLER_NOT_TOKEN";
     string private constant ERROR_LOCK_AMOUNT_ZERO = "TW_LOCK_AMOUNT_ZERO";
+    string private constant ERROR_UNLOCK_AMOUNT_ZERO = "TW_UNLOCK_AMOUNT_ZERO";
     string private constant ERROR_INVALID_UNLOCK_AMOUNT = "TW_INVALID_UNLOCK_AMOUNT";
     string private constant ERROR_INVALID_TOKEN_CONTROLLER = "TW_INVALID_TOKEN_CONTROLLER";
     string private constant ERROR_TOKEN_BURN_FAILED = "TW_TOKEN_BURN_FAILED";
@@ -70,6 +71,7 @@ contract TokenWrapper is ITokenController, IForwarder, AragonApp {
      * @notice Unlock `_amount` tokens
      */
     function unlock(uint256 _amount) external {
+        require(_amount > 0, ERROR_UNLOCK_AMOUNT_ZERO);
         require(_amount <= lockedAmount[msg.sender], ERROR_INVALID_UNLOCK_AMOUNT);
 
         lockedAmount[msg.sender] = lockedAmount[msg.sender].sub(_amount);

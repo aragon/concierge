@@ -44,7 +44,7 @@ contract('TokenWrapper', ([_, root, manager, holder, someone]) => {
     assert.equal((await erc20.balanceOf(holder)).toString(), 999998e18)
   })
 
-  it('can mint invalid amounts', async () => {
+  it('can not mint invalid amounts', async () => {
     await assertRevert(tokenWrapper.lock(0, { from: holder }), 'TW_LOCK_AMOUNT_ZERO')
     await assertRevert(tokenWrapper.lock(1e30, { from: holder }), 'TW_ERC20_TRANSFER_FROM_FAILED')
   })
@@ -58,6 +58,7 @@ contract('TokenWrapper', ([_, root, manager, holder, someone]) => {
   })
 
   it('can not burn invalid amounts', async () => {
+    await assertRevert(tokenWrapper.unlock(0, { from: holder }), 'TW_UNLOCK_AMOUNT_ZERO')
     await assertRevert(tokenWrapper.unlock(1e30, { from: holder }), 'TW_INVALID_UNLOCK_AMOUNT')
   })
 
