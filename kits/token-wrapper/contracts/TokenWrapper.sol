@@ -26,8 +26,6 @@ contract TokenWrapper is ITokenController, IForwarder, AragonApp {
     string private constant ERROR_ERC20_TRANSFER_FAILED = "TW_ERC20_TRANSFER_FAILED";
     string private constant ERROR_ERC20_TRANSFER_FROM_FAILED = "TW_ERC20_TRANSFER_FROM_FAILED";
 
-    bytes32 public constant CONTROLLER_MANAGER_ROLE = keccak256("CONTROLLER_MANAGER_ROLE");
-
     ERC20 public erc20;
     MiniMeToken public token;
     mapping(address => uint256) internal lockedAmount;
@@ -79,14 +77,6 @@ contract TokenWrapper is ITokenController, IForwarder, AragonApp {
 
         require(token.destroyTokens(msg.sender, _amount), ERROR_TOKEN_BURN_FAILED);
         require(erc20.transfer(msg.sender, _amount), ERROR_ERC20_TRANSFER_FAILED);
-    }
-
-    /**
-     * @notice Give control of the MiniMe token over to `_newController`
-     * @param _newController Ethereum address of contract that will control the token
-     */
-    function changeTokenController(address _newController) external auth(CONTROLLER_MANAGER_ROLE) {
-        token.changeController(_newController);
     }
 
     /*

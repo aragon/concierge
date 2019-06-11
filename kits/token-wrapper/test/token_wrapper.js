@@ -8,7 +8,7 @@ const TokenWrapper = artifacts.require('TokenWrapper')
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-contract('TokenWrapper', ([_, root, manager, holder, someone]) => {
+contract('TokenWrapper', ([_, root, holder, someone]) => {
   let dao, acl, tokenWrapper, erc20, token
 
   before('deploy dao with token wrapper', async () => {
@@ -68,13 +68,5 @@ contract('TokenWrapper', ([_, root, manager, holder, someone]) => {
 
   it('does not allow to approve tokens', async () => {
     await assertRevert(token.approve(someone, 1e16, { from: holder }))
-  })
-
-  it('can change the controller when the sender is the manager', async () => {
-    await acl.createPermission(manager, tokenWrapper.address, await tokenWrapper.CONTROLLER_MANAGER_ROLE(), manager, { from: root })
-
-    await assertRevert(tokenWrapper.changeTokenController(someone, { from: someone }), 'APP_AUTH_FAILED')
-    await tokenWrapper.changeTokenController(someone, { from: manager })
-    assert.equal(await token.controller(), someone)
   })
 })
