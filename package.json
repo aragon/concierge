@@ -12,10 +12,8 @@
     "bootstrap": "lerna bootstrap",
     "test": "npm run test:all",
     "test:all": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream test",
+    "test:agp1": "lerna run --scope=@aragon/kits-agp1 --stream test",
     "test:melon": "lerna run --scope=@aragon/kits-melon --stream test",
-    "lint": "lerna run --scope=@aragon/kits-* lint",
-    "deploy:devnet": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream deploy:devnet",
-    "deploy:rpc": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream deploy:rpc",
-    "deploy:rinkeby": "lerna run --scope=@aragon/kits-* --concurrency=1 --stream deploy:rinkeby"
+    "lint": "lerna run --scope=@aragon/kits-* lint"
   }
 }
