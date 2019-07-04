@@ -1,0 +1,20 @@
+language: node_js
+cache:
+  directories:
+    - node_modules
+    - kits/agp1/node_modules
+    - kits/melon/node_modules
+notifications:
+  email: false
+node_js:
+  - '9'
+env:
+  - TASK=lint
+  - TASK=test:agp1
+  - TASK=test:melon
+matrix:
+  fast_finish: true
+install:
+  - travis_wait 60 npm install
+script:
+  - travis_wait 60 npm run $TASK
