@@ -5,7 +5,7 @@
   "author": "Aragon Association <legal@aragon.org>",
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "lint": "solium --dir ./contracts",
+    "lint": "",
     "docker:wait-gas": "truffle exec ./node_modules/@aragon/kits-beta-base/scripts/sleep-until-gaslimit.js --network devnet 6900000",
     "docker:run": "cd ./node_modules/@aragon/kits-beta-base/; docker-compose -f docker-compose.yml up -d; RESULT=$?; cd -; $(exit $RESULT)",
     "docker:stop": "cd ./node_modules/@aragon/kits-beta-base/; docker-compose down; cd -",
